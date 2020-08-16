@@ -5,6 +5,7 @@ from pygame.locals import *
 import colors
 from ball import Ball, Charactor
 import math
+from enum import Enum
 
 
 class App:
@@ -36,12 +37,14 @@ class App:
                 Charactor.HERO)
         self.otherBalls = set()
         self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
+        self.score = 0
         return True
  
     def on_event(self, event):
         if event.type == pygame.QUIT:
             self._running = False
         elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+            # resolve keyboard control
             pressedKeys = pygame.key.get_pressed()
             self.heroBall.moveUpDown = 0
             self.heroBall.moveLeftRight = 0
@@ -63,8 +66,11 @@ class App:
         else:
             velocity = self.heroBall.velocity
         if velocity > 0.0:
-            self.heroBall.position[0] += self.heroBall.moveLeftRight * velocity
-            self.heroBall.position[1] += self.heroBall.moveUpDown * velocity
+            newPosition = [ self.heroBall.position[0] + self.heroBall.moveLeftRight * velocity, 
+                            self.heroBall.position[1] + self.heroBall.moveUpDown * velocity ]
+            newPosition[0] = max(self.heroBall.radius, min(newPosition[0], self._screenWidth - self.heroBall.radius))
+            newPosition[1] = max(self.heroBall.radius, min(newPosition[1], self._screenHeight - self.heroBall.radius))
+            self.heroBall.position = newPosition
 
         # move/delete other balls
         toRemove = set()
@@ -72,14 +78,18 @@ class App:
             ball.position[0] += ball.velocity[0]
             ball.position[1] += ball.velocity[1]
 
-            # remove useless ball
-            if (ball.position[0] + ball.radius < 0 or 
-                ball.position[0] - ball.radius > self._screenWidth or 
-                ball.position[1] + ball.radius < 0 or 
-                ball.position[1] - ball.radius > self._screenHeight):
+            # remove useless balls
+            if (ball.position[0] + ball.radius < 0 and ball.velocity[0] < 0.0):
+                toRemove.add(ball)
+            elif (ball.position[0] - ball.radius > self._screenWidth and ball.velocity[0] > 0.0):
+                toRemove.add(ball)
+            elif (ball.position[1] + ball.radius < 0 and ball.velocity[1] < 0.0):
+                toRemove.add(ball)
+            elif (ball.position[1] - ball.radius > self._screenHeight and ball.velocity[1] > 0.0):
                 toRemove.add(ball)
         if len(toRemove) > 0:
             self.otherBalls -= toRemove
+            print(f'remove! now number of balls (excluding hero) is {len(self.otherBalls)}')
         
         # check collision
         for ball in self.otherBalls:
