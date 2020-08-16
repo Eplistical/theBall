@@ -41,7 +41,7 @@ class App:
                                         (self._playGroundHeightRatio[1] - self._playGroundHeightRatio[0]) * self._screenHeight)
 
         # scoreboard
-        self._scoreBoardWidthRatio = (0.81, 1.0)
+        self._scoreBoardWidthRatio = (0.8, 1.0)
         self._scoreBoardHeightRatio = (0.0, 1.0)
         self._scoreBoardPanel = Panel(  self._scoreBoardWidthRatio[0] * self._screenWidth, 
                                         self._scoreBoardHeightRatio[0] * self._screenHeight,
@@ -53,19 +53,23 @@ class App:
         self._initialHeroVelocity = 10
 
         # other balls
-        self._genBallInterval = 4000 # ms
+        self._genBallInterval = 4800 # ms
         self._genBallStdDev = 0.1 # in normal dist
-        self._initialVelocityMagnitudeRange = (2, 5)
+        self._initialVelocityMagnitudeRange = (3, 6)
         self._initialThetaRange = (-75/90*math.pi, 75/90*math.pi)
-        self._initialRadiusRange = (5,30)
+        self._initialRadiusRange = (6,12)
 
         # events
         self._GEN_BALL_EVENT = pygame.USEREVENT + 1
+
+        # level
+        self._levelUpTimeInterval = 15000 # ms
 
 
     def on_init(self):
         # initialization
         pygame.init()
+        pygame.font.init()
         self.screen = pygame.display.set_mode(self._screenSize, self._displayMode)
         self.screen.fill(colors.BGCOLOR)
         self.clock = pygame.time.Clock()
@@ -77,7 +81,7 @@ class App:
                 Charactor.HERO)
         self.otherBalls = set()
         set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
-        self.score = 0
+        self.score = 0.0
         return True
  
     def on_event(self, event):
@@ -132,11 +136,14 @@ class App:
         if len(toRemove) > 0:
             self.otherBalls -= toRemove
             self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
+            self.score += math.sqrt(self.gameLevel) * 0.1 * len(toRemove)
+            if pygame.time.get_ticks() // self._levelUpTimeInterval > self.gameLevel:
+                self.levelUp()
         
         # check collision
         for ball in self.otherBalls:
             if self.heroBall.collide(ball):
-                print('collide!')
+                self._running = False
 
     def on_render(self):
         # background
@@ -162,6 +169,11 @@ class App:
 
             self.on_loop()
             self.on_render()
+        
+        self.render_gameOver()
+        while pygame.event.wait().type not in (KEYDOWN, MOUSEBUTTONDOWN):
+            pass
+
         self.on_cleanup()
     
     def generate_ball(self, charactor):
@@ -169,7 +181,7 @@ class App:
         initailLocationList = (LocationToPlayGround.LEFT_OUTSIDE, LocationToPlayGround.RIGHT_OUTSIDE, LocationToPlayGround.TOP_OUTSIDE, LocationToPlayGround.BOTTOM_OUTSIDE)
         side = random.choice(initailLocationList)
         # choose velocity
-        velocityMagnitude = random.uniform(self._initialVelocityMagnitudeRange[0], self._initialVelocityMagnitudeRange[1]) + self.gameLevel
+        velocityMagnitude = random.uniform(self._initialVelocityMagnitudeRange[0], self._initialVelocityMagnitudeRange[1])
         theta = random.uniform(self._initialThetaRange[0], self._initialThetaRange[1])
         velocity = [velocityMagnitude * math.cos(theta), velocityMagnitude * math.sin(theta)]
         # choose relative position
@@ -222,14 +234,40 @@ class App:
     def render_scoreboard(self):
         # draw scoreboard
         pygame.draw.rect(self.screen, colors.SCOREBOARD_BGCOLOR, self._scoreBoardPanel.to_rect())
+        myfont = pygame.font.SysFont('Comic Sans MS', 30)
+        textsurf = myfont.render(f'Level : {self.gameLevel}', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.0))
+        textsurf = myfont.render(f'Score : ', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.24))
+        textsurf = myfont.render(f'{self.score:.1f}', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.1, 0.4))
+        textsurf = myfont.render(f'Status', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.7))
+
+    def render_gameOver(self):
+        # background
+        self.screen.fill(colors.GAMEOVER_BGCOLOR)
+        myfont = pygame.font.SysFont('Comic Sans MS', 50)
+        textsurf = myfont.render(f'Your Final Score: {self.score:.1f}', False, colors.BLACK)
+        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.4))
+        # update display
+        pygame.display.update()
 
     def draw_ball(self, ball):
         if ball.charactor == Charactor.HERO:
             color = colors.HERO_COLOR
         elif ball.charactor == Charactor.ENEMY:
             color = colors.ENEMY_COLOR
-        pygame.draw.circle(self.screen, color, [int(x) for x in ball.position], int(ball.radius))
+        pygame.draw.circle(self.screen, color, [x for x in ball.position], ball.radius)
+    
+    def levelUp(self):
+        self.gameLevel += 1
+        self._genBallInterval *= 0.93
+        self._initialVelocityMagnitudeRange = tuple(x * 1.08 for x in self._initialVelocityMagnitudeRange)
+        self._initialRadiusRange = tuple(x * 1.08 for x in self._initialRadiusRange)
 
+        print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
+    
 if __name__ == "__main__" :
     theApp = App()
     theApp.on_execute()
