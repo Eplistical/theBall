@@ -5,6 +5,9 @@ import pygame
 from pygame.locals import *
 import colors
 import math
+import os
+import sys
+from pathlib import Path
 from enum import Enum
 from ball import Ball, Charactor, SPECIAL_CHARACTORS
 from panel import Panel
@@ -25,6 +28,8 @@ class App:
         # basic 
         self._running                           = True
         self._clockTickNumber                   = 20
+        self._appDir                            = Path(os.path.dirname(os.path.realpath(__file__)))
+        self._recordFileName                    = 'record.dat'
 
         # screen 
         self._screenWidth                       = 960
@@ -126,6 +131,16 @@ class App:
             'statusGodlike' : pygame.transform.scale(pygame.image.load('img/SPECIAL_GODLIKE.png'), self._statusImgSize),
             'statusFrozen' : pygame.transform.scale(pygame.image.load('img/SPECIAL_FROZEN.png'), self._statusImgSize),
         }
+        # record
+        try:
+            with open(self._appDir / self._recordFileName, 'r') as recf:
+                self.levelRecord = int(next(recf))
+                self.scoreRecord = float(next(recf))
+                print(self.scoreRecord)
+        except FileNotFoundError:
+            self.levelRecord = 1
+            self.scoreRecord = 0.0
+            
 
         return True
  
@@ -235,7 +250,6 @@ class App:
             self.on_loop()
             self.on_render()
         
-
         self.render_gameOver()
         self.on_cleanup()
     
@@ -326,15 +340,30 @@ class App:
             pygame.draw.rect(self.screen, colors.BALL_COLOR_DICT[self.heroBall.status], Rect(*self._scoreBoardPanel.get_coord_by_percent(0.1, 0.8), width, height))
 
     def render_gameOver(self):
-        # background
+        # update record
+        newRecFlag = False
+        if self.score > self.scoreRecord and self.score > 0.0:
+            with open(self._appDir / self._recordFileName, 'w') as recf:
+                print('%d' % self.gameLevel, file=recf)
+                print('%.1f' % self.score, file=recf)
+            newRecFlag = True
+
+        # render
         self.screen.fill(colors.GAMEOVER_BGCOLOR)
         myfont = pygame.font.SysFont('Calibri', 50)
         textsurf = myfont.render(f'Your Final Level: {self.gameLevel}', False, colors.BLACK)
-        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.2))
+        self.screen.blit(textsurf, (self._screenWidth * 0.16, self._screenHeight * 0.2))
         textsurf = myfont.render(f'Your Final Score: {self.score:.1f}', False, colors.BLACK)
-        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.4))
+        self.screen.blit(textsurf, (self._screenWidth * 0.16, self._screenHeight * 0.4))
+
+        if newRecFlag:
+            textsurf = myfont.render(f'New Record!', False, colors.BLACK)
+        else:
+            textsurf = myfont.render(f'Best Score Record: {self.scoreRecord}', False, colors.BLACK)
+        self.screen.blit(textsurf, (self._screenWidth * 0.16, self._screenHeight * 0.6))
+
         textsurf = myfont.render(f'Press Enter to Exit', False, colors.BLACK)
-        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.6))
+        self.screen.blit(textsurf, (self._screenWidth * 0.16, self._screenHeight * 0.8))
         # update display
         pygame.display.update()
         # wait for an quit signal

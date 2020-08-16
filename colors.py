@@ -14,7 +14,7 @@ PURPLE  = (127,   0, 255)
 
 BGCOLOR                             = BLACK
 PLAYGROUND_BGCOLOR                  = (128, 128, 128)
-SCOREBOARD_BGCOLOR                  = (255, 255, 204)
+SCOREBOARD_BGCOLOR                  = (255, 128,   0)
 GAMEOVER_BGCOLOR                    = (128, 128, 128)
 
 
