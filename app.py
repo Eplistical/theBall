@@ -86,8 +86,11 @@ class App:
         self._SPECIAL_GODLIKE_EXPIRE            = pygame.USEREVENT + 2
         self._SPECIAL_FROZEN_EXPIRE             = pygame.USEREVENT + 3
 
-        # level
+        # level up
         self._levelUpTimeInterval               = 15000 # ms
+        self._levelUpGenBallIntervalRatio       = 0.8
+        self._levelUpVelocityRatio              = 1.08
+        self._levelUpRadiusRatio                = 1.08
 
         # score
         self._collideScoreCoef                  = { 
@@ -159,6 +162,9 @@ class App:
         
     def on_loop(self):
         # update the heroBall
+        if self.heroBall.event is not None:
+            self.heroBall.event = None
+
         if self.heroBall.status != Charactor.SPECIAL_FROZEN:
             if self.heroBall.moveLeftRight == 0 and self.heroBall.moveUpDown == 0:
                 velocity = 0
@@ -340,21 +346,22 @@ class App:
                 break
 
     def draw_ball(self, ball):
-        if ball.status is None and ball.charactor != Charactor.SPECIAL_RANDOM:
-            color = colors.BALL_COLOR_DICT[ball.charactor]
+        if ball.event is not None:
+            color = colors.BALL_COLOR_DICT[ball.event]
+        elif ball.status is not None:
+            color = colors.BALL_COLOR_DICT[ball.status]
         elif ball.charactor == Charactor.SPECIAL_RANDOM:
             color = colors.BALL_COLOR_DICT[random.choice(SPECIAL_CHARACTORS)]
         else:
-            color = colors.BALL_COLOR_DICT[ball.status]
+            color = colors.BALL_COLOR_DICT[ball.charactor]
         pygame.draw.circle(self.screen, color, [x for x in ball.position], int(ball.radius))
     
     def levelUp(self):
         self.gameLevel += 1
-        self._genBallInterval *= 0.8
-        self._initialVelocityMagnitudeRange = tuple(x * 1.08 for x in self._initialVelocityMagnitudeRange)
-        self._initialRadiusRange = tuple(x * 1.08 for x in self._initialRadiusRange)
-
-        print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
+        self._genBallInterval *= self._levelUpGenBallIntervalRatio
+        self._initialVelocityMagnitudeRange = tuple(x * self._levelUpVelocityRatio for x in self._initialVelocityMagnitudeRange)
+        self._initialRadiusRange = tuple(x * self._levelUpRadiusRatio for x in self._initialRadiusRange)
+        #print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
     
     def collid_handler(self, ball):
         if ball.charactor == Charactor.ENEMY:
@@ -365,6 +372,7 @@ class App:
             if ball.charactor == Charactor.SPECIAL_RANDOM:
                 ball.charactor = random.choice(SPECIAL_CHARACTORS)
             # apply 
+            self.heroBall.event = ball.charactor
             if ball.charactor == Charactor.SPECIAL_BIGGER:
                 if self.heroBall.radius > self._heroBallRadiusRange[0]:
                     self.heroBall.radius += 1
@@ -393,7 +401,7 @@ class App:
         else:
             for ball in balls:
                 self.score += basePoint * self._collideScoreCoef[ball.charactor]
-                print(f'score up for {ball.charactor}! coef = {self._collideScoreCoef[ball.charactor]}')
+                #print(f'score up for {ball.charactor}! coef = {self._collideScoreCoef[ball.charactor]}')
     
 if __name__ == "__main__" :
     theApp = App()

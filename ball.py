@@ -35,6 +35,7 @@ class Ball:
 
         self.status = None
         self.statusBeginTick = None
+        self.event = None
 
     def __str__(self):
         return f'''Ball( position={self.position}, radius={self.radius}, velocity={self.velocity}, charactor=${self.charactor} )'''
