@@ -1,5 +1,6 @@
 # pylint: disable=maybe-no-member
 
+import random
 import pygame
 from pygame.locals import *
 import colors
@@ -7,6 +8,7 @@ import math
 from enum import Enum
 from ball import Ball, Charactor
 from panel import Panel
+from pygame.time import set_timer
 
 class LocationToPlayGround(Enum):
     INSIDE          = 1
@@ -14,8 +16,8 @@ class LocationToPlayGround(Enum):
     OUTSIDE         = 3
     LEFT_OUTSIDE    = 4
     RIGHT_OUTSIDE   = 5
-    UP_OUTSIDE      = 6
-    DOWN_OUTSIDE    = 7
+    TOP_OUTSIDE      = 6
+    BOTTOM_OUTSIDE    = 7
 
 
 class App:
@@ -47,8 +49,19 @@ class App:
                                         (self._scoreBoardHeightRatio[1] - self._scoreBoardHeightRatio[0]) * self._screenHeight)
 
         # heroBall
-        self._initialRadius = 20
-        self._initialVelocity = 10
+        self._initialHeroRadius = 20
+        self._initialHeroVelocity = 10
+
+        # other balls
+        self._genBallInterval = 4000 # ms
+        self._genBallStdDev = 0.1 # in normal dist
+        self._initialVelocityMagnitudeRange = (2, 5)
+        self._initialThetaRange = (-75/90*math.pi, 75/90*math.pi)
+        self._initialRadiusRange = (5,30)
+
+        # events
+        self._GEN_BALL_EVENT = pygame.USEREVENT + 1
+
 
     def on_init(self):
         # initialization
@@ -59,11 +72,11 @@ class App:
         self.gameLevel = 1
         self.heroBall = Ball(
                 self._playGroundPanel.get_coord_by_percent(0.5, 0.5),
-                self._initialRadius,
-                self._initialVelocity,
+                self._initialHeroRadius,
+                self._initialHeroVelocity,
                 Charactor.HERO)
         self.otherBalls = set()
-        self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
+        set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
         self.score = 0
         return True
  
@@ -83,6 +96,10 @@ class App:
                 self.heroBall.moveLeftRight -= 1
             if pressedKeys[K_RIGHT]:
                 self.heroBall.moveLeftRight += 1
+        elif event.type == self._GEN_BALL_EVENT:
+            ballType = Charactor.ENEMY
+            self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
+            set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
         
     def on_loop(self):
         # update the heroBall
@@ -103,7 +120,6 @@ class App:
         for ball in self.otherBalls:
             ball.position[0] += ball.velocity[0]
             ball.position[1] += ball.velocity[1]
-
             # remove useless balls
             if (ball.position[0] + ball.radius < self._playGroundPanel.left and ball.velocity[0] < 0.0):
                 toRemove.add(ball)
@@ -115,7 +131,7 @@ class App:
                 toRemove.add(ball)
         if len(toRemove) > 0:
             self.otherBalls -= toRemove
-            print(f'remove! now number of balls (excluding hero) is {len(self.otherBalls)}')
+            self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
         
         # check collision
         for ball in self.otherBalls:
@@ -149,9 +165,30 @@ class App:
         self.on_cleanup()
     
     def generate_ball(self, charactor):
-        position = [-5, 300]
-        radius = 12
-        velocity = [12, 0]
+        # choose side
+        initailLocationList = (LocationToPlayGround.LEFT_OUTSIDE, LocationToPlayGround.RIGHT_OUTSIDE, LocationToPlayGround.TOP_OUTSIDE, LocationToPlayGround.BOTTOM_OUTSIDE)
+        side = random.choice(initailLocationList)
+        # choose velocity
+        velocityMagnitude = random.uniform(self._initialVelocityMagnitudeRange[0], self._initialVelocityMagnitudeRange[1]) + self.gameLevel
+        theta = random.uniform(self._initialThetaRange[0], self._initialThetaRange[1])
+        velocity = [velocityMagnitude * math.cos(theta), velocityMagnitude * math.sin(theta)]
+        # choose relative position
+        positionPercent = random.uniform(0.0, 1.0)
+        # choose radius
+        radius = random.uniform(self._initialRadiusRange[0], self._initialRadiusRange[1])
+        # construct ball
+        if side == LocationToPlayGround.LEFT_OUTSIDE:
+            position = [self._playGroundPanel.left - radius, self._playGroundPanel.top + self._playGroundPanel.height * positionPercent]
+            velocity = [velocity[0], velocity[1]]
+        elif side == LocationToPlayGround.RIGHT_OUTSIDE:
+            position = [self._playGroundPanel.right + radius, self._playGroundPanel.top + self._playGroundPanel.height * positionPercent]
+            velocity = [-velocity[0], velocity[1]]
+        elif side == LocationToPlayGround.TOP_OUTSIDE:
+            position = [self._playGroundPanel.left + self._playGroundPanel.width * positionPercent, self._playGroundPanel.top - radius]
+            velocity = [velocity[1], velocity[0]]
+        elif side == LocationToPlayGround.BOTTOM_OUTSIDE:
+            position = [self._playGroundPanel.left + self._playGroundPanel.width * positionPercent, self._playGroundPanel.bottom + radius]
+            velocity = [velocity[1], -velocity[0]]
         return Ball(position, radius, velocity, charactor)
     
     def get_ball_relative_location(self, ball):
@@ -168,9 +205,9 @@ class App:
             if leftMost > self._playGroundWidth:
                 details.add(LocationToPlayGround.RIGHT_OUTSIDE)
             if downMost < 0.0:
-                details.add(LocationToPlayGround.UP_OUTSIDE)
+                details.add(LocationToPlayGround.TOP_OUTSIDE)
             if upMost > self._playGroundHeight:
-                details.add(LocationToPlayGround.DOWN_OUTSIDE)
+                details.add(LocationToPlayGround.BOTTOM_OUTSIDE)
             return LocationToPlayGround.OUTSIDE, details
         else:
             return LocationToPlayGround.CROSSING, None
