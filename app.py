@@ -234,7 +234,7 @@ class App:
     def render_scoreboard(self):
         # draw scoreboard
         pygame.draw.rect(self.screen, colors.SCOREBOARD_BGCOLOR, self._scoreBoardPanel.to_rect())
-        myfont = pygame.font.SysFont('Comic Sans MS', 30)
+        myfont = pygame.font.SysFont('Calibri', 30)
         textsurf = myfont.render(f'Level : {self.gameLevel}', False, colors.BLACK)
         self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.0))
         textsurf = myfont.render(f'Score : ', False, colors.BLACK)
@@ -247,7 +247,7 @@ class App:
     def render_gameOver(self):
         # background
         self.screen.fill(colors.GAMEOVER_BGCOLOR)
-        myfont = pygame.font.SysFont('Comic Sans MS', 50)
+        myfont = pygame.font.SysFont('Calibri', 50)
         textsurf = myfont.render(f'Your Final Level: {self.gameLevel}', False, colors.BLACK)
         self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.2))
         textsurf = myfont.render(f'Your Final Score: {self.score:.1f}', False, colors.BLACK)
