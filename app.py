@@ -53,7 +53,7 @@ class App:
         self._initialHeroVelocity = 10
 
         # other balls
-        self._genBallInterval = 4800 # ms
+        self._genBallInterval = 4000 # ms
         self._genBallStdDev = 0.1 # in normal dist
         self._initialVelocityMagnitudeRange = (3, 6)
         self._initialThetaRange = (-75/90*math.pi, 75/90*math.pi)
@@ -171,7 +171,7 @@ class App:
             self.on_render()
         
         self.render_gameOver()
-        while pygame.event.wait().type not in (KEYDOWN, MOUSEBUTTONDOWN):
+        while pygame.event.wait().type not in (KEYDOWN, MOUSEBUTTONDOWN, QUIT):
             pass
 
         self.on_cleanup()
@@ -248,6 +248,8 @@ class App:
         # background
         self.screen.fill(colors.GAMEOVER_BGCOLOR)
         myfont = pygame.font.SysFont('Comic Sans MS', 50)
+        textsurf = myfont.render(f'Your Final Level: {self.gameLevel}', False, colors.BLACK)
+        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.2))
         textsurf = myfont.render(f'Your Final Score: {self.score:.1f}', False, colors.BLACK)
         self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.4))
         # update display
@@ -262,9 +264,9 @@ class App:
     
     def levelUp(self):
         self.gameLevel += 1
-        self._genBallInterval *= 0.93
-        self._initialVelocityMagnitudeRange = tuple(x * 1.08 for x in self._initialVelocityMagnitudeRange)
-        self._initialRadiusRange = tuple(x * 1.08 for x in self._initialRadiusRange)
+        self._genBallInterval *= 0.92
+        self._initialVelocityMagnitudeRange = tuple(x * 1.1 for x in self._initialVelocityMagnitudeRange)
+        self._initialRadiusRange = tuple(x * 1.1 for x in self._initialRadiusRange)
 
         print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
     
