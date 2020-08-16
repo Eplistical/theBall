@@ -23,47 +23,82 @@ class LocationToPlayGround(Enum):
 class App:
     def __init__(self):
         # basic 
-        self._running = True
-        self._clockTickNumber = 20
+        self._running                           = True
+        self._clockTickNumber                   = 20
 
         # screen 
-        self._screenWidth = 960
-        self._screenHeight = 540
-        self._screenSize = (self._screenWidth, self._screenHeight)
-        self._displayMode = pygame.HWSURFACE | pygame.DOUBLEBUF
+        self._screenWidth                       = 960
+        self._screenHeight                      = 640
+        self._screenSize                        = (self._screenWidth, self._screenHeight)
+        self._displayMode                       = pygame.HWSURFACE | pygame.DOUBLEBUF
 
         # playground
-        self._playGroundWidthRatio = (0.0, 0.8)
-        self._playGroundHeightRatio = (0.0, 1.0)
+        self._playGroundWidthRatio              = (0.0, 0.8)
+        self._playGroundHeightRatio             = (0.0, 1.0)
         self._playGroundPanel = Panel(  self._playGroundWidthRatio[0] * self._screenWidth, 
                                         self._playGroundHeightRatio[0] * self._screenHeight,
                                         (self._playGroundWidthRatio[1] - self._playGroundWidthRatio[0]) * self._screenWidth,
                                         (self._playGroundHeightRatio[1] - self._playGroundHeightRatio[0]) * self._screenHeight)
 
         # scoreboard
-        self._scoreBoardWidthRatio = (0.8, 1.0)
-        self._scoreBoardHeightRatio = (0.0, 1.0)
+        self._scoreBoardWidthRatio              = (0.8, 1.0)
+        self._scoreBoardHeightRatio             = (0.0, 1.0)
         self._scoreBoardPanel = Panel(  self._scoreBoardWidthRatio[0] * self._screenWidth, 
                                         self._scoreBoardHeightRatio[0] * self._screenHeight,
                                         (self._scoreBoardWidthRatio[1] - self._scoreBoardWidthRatio[0]) * self._screenWidth,
                                         (self._scoreBoardHeightRatio[1] - self._scoreBoardHeightRatio[0]) * self._screenHeight)
 
+        # images
+        self._statusImgWidthRatio               = 0.06
+        self._statusImgHeightRatio              = 0.06
+        self._statusImgSize                     = (int(self._statusImgWidthRatio * self._screenWidth), int(self._statusImgHeightRatio * self._screenHeight))
+
         # heroBall
-        self._initialHeroRadius = 20
-        self._initialHeroVelocity = 10
+        self._initialHeroRadius                 = 16
+        self._initialHeroVelocity               = 8
+        self._heroBallVelocityRange             = (3, 20)
+        self._heroBallRadiusRange               = (5, 30)
 
         # other balls
-        self._genBallInterval = 4000 # ms
-        self._genBallStdDev = 0.1 # in normal dist
-        self._initialVelocityMagnitudeRange = (3, 6)
-        self._initialThetaRange = (-75/90*math.pi, 75/90*math.pi)
-        self._initialRadiusRange = (6,12)
+        self._genBallInterval                   = 1000 # ms
+        self._genBallStdDev                     = 0.1 # in normal dist
+        self._initialVelocityMagnitudeRange     = (4, 8)
+        self._initialThetaRange                 = (-15/90*math.pi, 15/90*math.pi)
+        self._initialRadiusRange                = (5, 10)
+
+        self._genBallCharactorProb              = { 
+            Charactor.ENEMY                 : 0.70,
+            Charactor.SPECIAL_SPEED_UP      : 0.06,
+            Charactor.SPECIAL_SPEED_DOWN    : 0.06,
+            Charactor.SPECIAL_SMALLER       : 0.06,
+            Charactor.SPECIAL_BIGGER        : 0.06,
+            Charactor.SPECIAL_GODLIKE       : 0.03,
+            Charactor.SPECIAL_FROZEN        : 0.03,
+        }
+        self._toAddQueue                        = list()
+        self._toAddBatchSize                    = 20
+        self._statusGodlikePeriod               = 3200 # ms
+        self._statusFrozenPeriod                = 3200 # ms
 
         # events
-        self._GEN_BALL_EVENT = pygame.USEREVENT + 1
+        self._GEN_BALL_EVENT                    = pygame.USEREVENT + 1
+        self._SPECIAL_GODLIKE_EXPIRE            = pygame.USEREVENT + 2
+        self._SPECIAL_FROZEN_EXPIRE             = pygame.USEREVENT + 3
 
         # level
-        self._levelUpTimeInterval = 15000 # ms
+        self._levelUpTimeInterval               = 15000 # ms
+
+        # score
+        self._collideScoreCoef                  = { 
+            Charactor.ENEMY                 : 4,
+            Charactor.SPECIAL_BIGGER        : 4,
+            Charactor.SPECIAL_SMALLER       : 2,
+            Charactor.SPECIAL_SPEED_DOWN    : 4,
+            Charactor.SPECIAL_SPEED_UP      : 2,
+            Charactor.SPECIAL_GODLIKE       : 8,
+            Charactor.SPECIAL_FROZEN        : 32,
+        }
+
 
 
     def on_init(self):
@@ -82,6 +117,12 @@ class App:
         self.otherBalls = set()
         set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
         self.score = 0.0
+        # images
+        self.imgs = {
+            'statusGodlike' : pygame.transform.scale(pygame.image.load('img/SPECIAL_GODLIKE.png'), self._statusImgSize),
+            'statusFrozen' : pygame.transform.scale(pygame.image.load('img/SPECIAL_FROZEN.png'), self._statusImgSize),
+        }
+
         return True
  
     def on_event(self, event):
@@ -101,30 +142,42 @@ class App:
             if pressedKeys[K_RIGHT]:
                 self.heroBall.moveLeftRight += 1
         elif event.type == self._GEN_BALL_EVENT:
-            ballType = Charactor.ENEMY
-            self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
+            if len(self._toAddQueue) == 0:
+                self._toAddQueue = random.choices(list(self._genBallCharactorProb.keys()), weights=list(self._genBallCharactorProb.values()), k=self._toAddBatchSize)
+            self.otherBalls.add(self.generate_ball(self._toAddQueue[-1]))
+            self._toAddQueue.pop()
             set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
+        elif event.type == self._SPECIAL_GODLIKE_EXPIRE:
+            if self.heroBall.status == Charactor.SPECIAL_GODLIKE and (pygame.time.get_ticks() - self.heroBall.statusBeginTick) >= self._statusGodlikePeriod - 10:
+                self.heroBall.status = None
+                self.heroBall.statusBeginTick = None
+        elif event.type == self._SPECIAL_FROZEN_EXPIRE:
+            if self.heroBall.status == Charactor.SPECIAL_FROZEN and (pygame.time.get_ticks() - self.heroBall.statusBeginTick) >= self._statusFrozenPeriod - 10:
+                self.heroBall.status = None
+                self.heroBall.statusBeginTick = None
         
     def on_loop(self):
         # update the heroBall
-        if self.heroBall.moveLeftRight == 0 and self.heroBall.moveUpDown == 0:
-            velocity = 0
-        elif self.heroBall.moveLeftRight != 0 and self.heroBall.moveUpDown != 0:
-            velocity = self.heroBall.velocity / math.sqrt(2.0)
-        else:
-            velocity = self.heroBall.velocity
-        if velocity > 0.0:
-            self.heroBall.position[0] += self.heroBall.moveLeftRight * velocity
-            self.heroBall.position[1] += self.heroBall.moveUpDown * velocity
-            self.heroBall.position[0] = max(self._playGroundPanel.left + self.heroBall.radius, min(self._playGroundPanel.right - self.heroBall.radius, self.heroBall.position[0]))
-            self.heroBall.position[1] = max(self._playGroundPanel.top + self.heroBall.radius, min(self._playGroundPanel.bottom - self.heroBall.radius, self.heroBall.position[1]))
+        if self.heroBall.status != Charactor.SPECIAL_FROZEN:
+            if self.heroBall.moveLeftRight == 0 and self.heroBall.moveUpDown == 0:
+                velocity = 0
+            elif self.heroBall.moveLeftRight != 0 and self.heroBall.moveUpDown != 0:
+                velocity = self.heroBall.velocity / math.sqrt(2.0)
+            else:
+                velocity = self.heroBall.velocity
+            if velocity > 0.0:
+                self.heroBall.position[0] += self.heroBall.moveLeftRight * velocity
+                self.heroBall.position[1] += self.heroBall.moveUpDown * velocity
+                self.heroBall.position[0] = max(self._playGroundPanel.left + self.heroBall.radius, min(self._playGroundPanel.right - self.heroBall.radius, self.heroBall.position[0]))
+                self.heroBall.position[1] = max(self._playGroundPanel.top + self.heroBall.radius, min(self._playGroundPanel.bottom - self.heroBall.radius, self.heroBall.position[1]))
 
         # update/delete other balls
         toRemove = set()
+        toRemoveCollide = set()
         for ball in self.otherBalls:
             ball.position[0] += ball.velocity[0]
             ball.position[1] += ball.velocity[1]
-            # remove useless balls
+            # out of boundary
             if (ball.position[0] + ball.radius < self._playGroundPanel.left and ball.velocity[0] < 0.0):
                 toRemove.add(ball)
             elif (ball.position[0] - ball.radius > self._playGroundPanel.right and ball.velocity[0] > 0.0):
@@ -133,17 +186,23 @@ class App:
                 toRemove.add(ball)
             elif (ball.position[1] - ball.radius > self._playGroundPanel.bottom and ball.velocity[1] > 0.0):
                 toRemove.add(ball)
+            # collision
+            if self.heroBall.collide(ball):
+                self.collid_hanlder(ball)
+                toRemoveCollide.add(ball)
+        # remove balls
         if len(toRemove) > 0:
             self.otherBalls -= toRemove
-            self.otherBalls.add(self.generate_ball(Charactor.ENEMY))
-            self.score += math.sqrt(self.gameLevel) * 0.1 * len(toRemove)
-            if pygame.time.get_ticks() // self._levelUpTimeInterval > self.gameLevel:
-                self.levelUp()
+            self.scoreUp(toRemove, collide=False)
+
+        if len(toRemoveCollide) > 0:
+            self.otherBalls -= toRemoveCollide
+            self.scoreUp(toRemoveCollide, collide=True)
+
+        # level up 
+        if pygame.time.get_ticks() // self._levelUpTimeInterval > self.gameLevel:
+            self.levelUp()
         
-        # check collision
-        for ball in self.otherBalls:
-            if self.heroBall.collide(ball):
-                self._running = False
 
     def on_render(self):
         # background
@@ -166,14 +225,11 @@ class App:
             self.clock.tick(self._clockTickNumber)
             for event in pygame.event.get():
                 self.on_event(event)
-
             self.on_loop()
             self.on_render()
         
-        self.render_gameOver()
-        while pygame.event.wait().type not in (KEYDOWN, MOUSEBUTTONDOWN, QUIT):
-            pass
 
+        self.render_gameOver()
         self.on_cleanup()
     
     def generate_ball(self, charactor):
@@ -241,8 +297,26 @@ class App:
         self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.24))
         textsurf = myfont.render(f'{self.score:.1f}', False, colors.BLACK)
         self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.1, 0.4))
+        # baisc info
+        textsurf = myfont.render(f'Radius : {self.heroBall.radius}', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.5))
+        textsurf = myfont.render(f'Velocity : {self.heroBall.velocity}', False, colors.BLACK)
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.6))
+        # status
         textsurf = myfont.render(f'Status', False, colors.BLACK)
         self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.7))
+        if self.heroBall.status is not None:
+            width = self._scoreBoardPanel.width * 0.8
+            height = self._scoreBoardPanel.width * 0.1
+
+            if self.heroBall.status == Charactor.SPECIAL_GODLIKE:
+                width *= (1.0 - (pygame.time.get_ticks() - self.heroBall.statusBeginTick) / (self._statusGodlikePeriod))
+                self.screen.blit(self.imgs['statusGodlike'], self._scoreBoardPanel.get_coord_by_percent(0.5, 0.69))
+            elif self.heroBall.status == Charactor.SPECIAL_FROZEN:
+                width *= (1.0 - (pygame.time.get_ticks() - self.heroBall.statusBeginTick) / (self._statusFrozenPeriod))
+                self.screen.blit(self.imgs['statusFrozen'], self._scoreBoardPanel.get_coord_by_percent(0.5, 0.69))
+
+            pygame.draw.rect(self.screen, colors.BALL_COLOR_DICT[self.heroBall.status], Rect(*self._scoreBoardPanel.get_coord_by_percent(0.1, 0.8), width, height))
 
     def render_gameOver(self):
         # background
@@ -252,23 +326,67 @@ class App:
         self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.2))
         textsurf = myfont.render(f'Your Final Score: {self.score:.1f}', False, colors.BLACK)
         self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.4))
+        textsurf = myfont.render(f'Press Enter to Exit', False, colors.BLACK)
+        self.screen.blit(textsurf, (self._screenWidth * 0.24, self._screenHeight * 0.6))
         # update display
         pygame.display.update()
+        # wait for an quit signal
+        while True:
+            event = pygame.event.wait()
+            if event.type in (MOUSEBUTTONDOWN, QUIT):
+                break
+            elif event.type == KEYDOWN and event.key not in (K_DOWN, K_UP, K_LEFT, K_RIGHT):
+                break
 
     def draw_ball(self, ball):
-        if ball.charactor == Charactor.HERO:
-            color = colors.HERO_COLOR
-        elif ball.charactor == Charactor.ENEMY:
-            color = colors.ENEMY_COLOR
-        pygame.draw.circle(self.screen, color, [x for x in ball.position], ball.radius)
+        if ball.status is None:
+            color = colors.BALL_COLOR_DICT[ball.charactor]
+        else:
+            color = colors.BALL_COLOR_DICT[ball.status]
+        pygame.draw.circle(self.screen, color, [x for x in ball.position], int(ball.radius))
     
     def levelUp(self):
         self.gameLevel += 1
-        self._genBallInterval *= 0.92
-        self._initialVelocityMagnitudeRange = tuple(x * 1.1 for x in self._initialVelocityMagnitudeRange)
-        self._initialRadiusRange = tuple(x * 1.1 for x in self._initialRadiusRange)
+        self._genBallInterval *= 0.8
+        self._initialVelocityMagnitudeRange = tuple(x * 1.08 for x in self._initialVelocityMagnitudeRange)
+        self._initialRadiusRange = tuple(x * 1.08 for x in self._initialRadiusRange)
 
         print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
+    
+    def collid_hanlder(self, ball):
+        if ball.charactor == Charactor.ENEMY:
+            if self.heroBall.status != Charactor.SPECIAL_GODLIKE:
+                self._running = False
+        else:
+            if ball.charactor == Charactor.SPECIAL_BIGGER:
+                if self.heroBall.radius > self._heroBallRadiusRange[0]:
+                    self.heroBall.radius -= 1
+            elif ball.charactor == Charactor.SPECIAL_SMALLER:
+                if self.heroBall.radius < self._heroBallRadiusRange[1]:
+                    self.heroBall.radius += 1
+            elif ball.charactor == Charactor.SPECIAL_SPEED_UP:
+                if self.heroBall.velocity < self._heroBallVelocityRange[1]:
+                    self.heroBall.velocity += 1
+            elif ball.charactor == Charactor.SPECIAL_SPEED_DOWN:
+                if self.heroBall.velocity > self._heroBallVelocityRange[0]:
+                    self.heroBall.velocity -= 1
+            elif ball.charactor == Charactor.SPECIAL_GODLIKE:
+                self.heroBall.status = Charactor.SPECIAL_GODLIKE
+                self.heroBall.statusBeginTick = pygame.time.get_ticks()
+                set_timer(self._SPECIAL_GODLIKE_EXPIRE, self._statusGodlikePeriod - 1)
+            elif ball.charactor == Charactor.SPECIAL_FROZEN:
+                self.heroBall.status = Charactor.SPECIAL_FROZEN
+                self.heroBall.statusBeginTick = pygame.time.get_ticks()
+                set_timer(self._SPECIAL_FROZEN_EXPIRE, self._statusFrozenPeriod - 1)
+    
+    def scoreUp(self, balls, collide):
+        basePoint = math.sqrt(self.gameLevel) * 0.1
+        if not collide:
+            self.score += basePoint * len(balls)
+        else:
+            for ball in balls:
+                self.score += basePoint * self._collideScoreCoef[ball.charactor]
+                print(f'score up for {ball.charactor}! coef = {self._collideScoreCoef[ball.charactor]}')
     
 if __name__ == "__main__" :
     theApp = App()

@@ -2,9 +2,14 @@ import math
 from enum import Enum
 
 class Charactor(Enum):
-    HERO        = 1
-    ENEMY       = 2
-    SPECIAL     = 3
+    HERO                    = 1
+    ENEMY                   = 2
+    SPECIAL_SPEED_UP        = 3
+    SPECIAL_SPEED_DOWN      = 4
+    SPECIAL_SMALLER         = 5
+    SPECIAL_BIGGER          = 6
+    SPECIAL_GODLIKE         = 7
+    SPECIAL_FROZEN          = 8
 
 
 class Ball:
@@ -17,8 +22,9 @@ class Ball:
         self.moveUpDown = 0
         self.moveLeftRight = 0
 
-        self.active = True
-    
+        self.status = None
+        self.statusBeginTick = None
+
     def __str__(self):
         return f'''Ball( position={self.position}, radius={self.radius}, velocity={self.velocity}, charactor=${self.charactor} )'''
 

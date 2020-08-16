@@ -10,7 +10,7 @@ class Panel:
         self.bottom = self.top + self.height
     
     def get_coord_by_percent(self, widthPercent, heightPercent):
-        return [self.left + self.width * widthPercent, self.top + self.height * heightPercent]
+        return [round(self.left + self.width * widthPercent), round(self.top + self.height * heightPercent)]
     
     def to_rect(self):
         return Rect(self.left, self.top, self.width, self.height)
