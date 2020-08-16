@@ -10,6 +10,17 @@ class Charactor(Enum):
     SPECIAL_BIGGER          = 6
     SPECIAL_GODLIKE         = 7
     SPECIAL_FROZEN          = 8
+    SPECIAL_RANDOM          = 9
+
+
+SPECIAL_CHARACTORS = (
+    Charactor.SPECIAL_SPEED_UP,
+    Charactor.SPECIAL_SPEED_DOWN,
+    Charactor.SPECIAL_SMALLER,
+    Charactor.SPECIAL_BIGGER,
+    Charactor.SPECIAL_FROZEN,
+    Charactor.SPECIAL_GODLIKE,
+)
 
 
 class Ball:

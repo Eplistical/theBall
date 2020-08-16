@@ -6,7 +6,7 @@ from pygame.locals import *
 import colors
 import math
 from enum import Enum
-from ball import Ball, Charactor
+from ball import Ball, Charactor, SPECIAL_CHARACTORS
 from panel import Panel
 from pygame.time import set_timer
 
@@ -67,13 +67,14 @@ class App:
         self._initialRadiusRange                = (5, 10)
 
         self._genBallCharactorProb              = { 
-            Charactor.ENEMY                 : 0.70,
+            Charactor.ENEMY                 : 0.67,
             Charactor.SPECIAL_SPEED_UP      : 0.06,
             Charactor.SPECIAL_SPEED_DOWN    : 0.06,
             Charactor.SPECIAL_SMALLER       : 0.06,
             Charactor.SPECIAL_BIGGER        : 0.06,
             Charactor.SPECIAL_GODLIKE       : 0.03,
             Charactor.SPECIAL_FROZEN        : 0.03,
+            Charactor.SPECIAL_RANDOM        : 0.03,
         }
         self._toAddQueue                        = list()
         self._toAddBatchSize                    = 20
@@ -339,8 +340,10 @@ class App:
                 break
 
     def draw_ball(self, ball):
-        if ball.status is None:
+        if ball.status is None and ball.charactor != Charactor.SPECIAL_RANDOM:
             color = colors.BALL_COLOR_DICT[ball.charactor]
+        elif ball.charactor == Charactor.SPECIAL_RANDOM:
+            color = colors.BALL_COLOR_DICT[random.choice(SPECIAL_CHARACTORS)]
         else:
             color = colors.BALL_COLOR_DICT[ball.status]
         pygame.draw.circle(self.screen, color, [x for x in ball.position], int(ball.radius))
@@ -358,6 +361,10 @@ class App:
             if self.heroBall.status != Charactor.SPECIAL_GODLIKE:
                 self._running = False
         else:
+            # resolve random
+            if ball.charactor == Charactor.SPECIAL_RANDOM:
+                ball.charactor = random.choice(SPECIAL_CHARACTORS)
+            # apply 
             if ball.charactor == Charactor.SPECIAL_BIGGER:
                 if self.heroBall.radius > self._heroBallRadiusRange[0]:
                     self.heroBall.radius -= 1
