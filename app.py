@@ -189,7 +189,7 @@ class App:
                 toRemove.add(ball)
             # collision
             if self.heroBall.collide(ball):
-                self.collid_hanlder(ball)
+                self.collid_handler(ball)
                 toRemoveCollide.add(ball)
         # remove balls
         if len(toRemove) > 0:
@@ -293,19 +293,19 @@ class App:
         pygame.draw.rect(self.screen, colors.SCOREBOARD_BGCOLOR, self._scoreBoardPanel.to_rect())
         myfont = pygame.font.SysFont('Calibri', 30)
         textsurf = myfont.render(f'Level : {self.gameLevel}', False, colors.BLACK)
-        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.0))
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.02, 0.0))
         textsurf = myfont.render(f'Score : ', False, colors.BLACK)
-        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.24))
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.02, 0.24))
         textsurf = myfont.render(f'{self.score:.1f}', False, colors.BLACK)
         self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.1, 0.4))
         # baisc info
         textsurf = myfont.render(f'Radius : {self.heroBall.radius}', False, colors.BLACK)
-        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.5))
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.02, 0.5))
         textsurf = myfont.render(f'Velocity : {self.heroBall.velocity}', False, colors.BLACK)
-        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.6))
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.02, 0.6))
         # status
         textsurf = myfont.render(f'Status', False, colors.BLACK)
-        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.0, 0.7))
+        self.screen.blit(textsurf, self._scoreBoardPanel.get_coord_by_percent(0.02, 0.7))
         if self.heroBall.status is not None:
             width = self._scoreBoardPanel.width * 0.8
             height = self._scoreBoardPanel.width * 0.1
@@ -356,7 +356,7 @@ class App:
 
         print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
     
-    def collid_hanlder(self, ball):
+    def collid_handler(self, ball):
         if ball.charactor == Charactor.ENEMY:
             if self.heroBall.status != Charactor.SPECIAL_GODLIKE:
                 self._running = False
@@ -367,10 +367,10 @@ class App:
             # apply 
             if ball.charactor == Charactor.SPECIAL_BIGGER:
                 if self.heroBall.radius > self._heroBallRadiusRange[0]:
-                    self.heroBall.radius -= 1
+                    self.heroBall.radius += 1
             elif ball.charactor == Charactor.SPECIAL_SMALLER:
                 if self.heroBall.radius < self._heroBallRadiusRange[1]:
-                    self.heroBall.radius += 1
+                    self.heroBall.radius -= 1
             elif ball.charactor == Charactor.SPECIAL_SPEED_UP:
                 if self.heroBall.velocity < self._heroBallVelocityRange[1]:
                     self.heroBall.velocity += 1
@@ -387,7 +387,7 @@ class App:
                 set_timer(self._SPECIAL_FROZEN_EXPIRE, self._statusFrozenPeriod - 1)
     
     def scoreUp(self, balls, collide):
-        basePoint = math.sqrt(self.gameLevel) * 0.1
+        basePoint = math.sqrt(self.gameLevel)
         if not collide:
             self.score += basePoint * len(balls)
         else:
