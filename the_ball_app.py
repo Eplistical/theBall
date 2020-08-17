@@ -83,8 +83,8 @@ class App:
         }
         self._toAddQueue                        = list()
         self._toAddBatchSize                    = 20
-        self._statusGodlikePeriod               = 2800 # ms
-        self._statusFrozenPeriod                = 3500 # ms
+        self._statusGodlikePeriod               = 3500 # ms
+        self._statusFrozenPeriod                = 2800 # ms
 
         # events
         self._GEN_BALL_EVENT                    = pygame.USEREVENT + 1
