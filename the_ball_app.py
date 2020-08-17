@@ -27,13 +27,13 @@ class App:
     def __init__(self):
         # basic 
         self._running                           = True
-        self._clockTickNumber                   = 20
+        self._clockTickNumber                   = 24
         self._appDir                            = Path(os.path.dirname(os.path.realpath(__file__)))
         self._recordFileName                    = 'record.dat'
 
         # screen 
-        self._screenWidth                       = 960
-        self._screenHeight                      = 640
+        self._screenWidth                       = 1280
+        self._screenHeight                      = 720
         self._screenSize                        = (self._screenWidth, self._screenHeight)
         self._displayMode                       = pygame.HWSURFACE | pygame.DOUBLEBUF
 
@@ -61,8 +61,8 @@ class App:
         # heroBall
         self._initialHeroRadius                 = 16
         self._initialHeroVelocity               = 8
-        self._heroBallVelocityRange             = (3, 20)
-        self._heroBallRadiusRange               = (5, 30)
+        self._heroBallVelocityRange             = (2, 24)
+        self._heroBallRadiusRange               = (5, 32)
 
         # other balls
         self._genBallInterval                   = 1000 # ms
@@ -136,7 +136,6 @@ class App:
             with open(self._appDir / self._recordFileName, 'r') as recf:
                 self.levelRecord = int(next(recf))
                 self.scoreRecord = float(next(recf))
-                print(self.scoreRecord)
         except FileNotFoundError:
             self.levelRecord = 1
             self.scoreRecord = 0.0
@@ -383,7 +382,7 @@ class App:
             color = colors.BALL_COLOR_DICT[random.choice(SPECIAL_CHARACTORS)]
         else:
             color = colors.BALL_COLOR_DICT[ball.charactor]
-        pygame.draw.circle(self.screen, color, [x for x in ball.position], int(ball.radius))
+        pygame.draw.circle(self.screen, color, [int(x) for x in ball.position], int(ball.radius))
     
     def levelUp(self):
         self.gameLevel += 1
