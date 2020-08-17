@@ -152,13 +152,13 @@ class App:
             pressedKeys = pygame.key.get_pressed()
             self.heroBall.moveUpDown = 0
             self.heroBall.moveLeftRight = 0
-            if pressedKeys[K_UP]:
+            if pressedKeys[K_UP] or pressedKeys[K_w]:
                 self.heroBall.moveUpDown -= 1
-            if pressedKeys[K_DOWN]:
+            if pressedKeys[K_DOWN] or pressedKeys[K_s]:
                 self.heroBall.moveUpDown += 1
-            if pressedKeys[K_LEFT]:
+            if pressedKeys[K_LEFT] or pressedKeys[K_a]:
                 self.heroBall.moveLeftRight -= 1
-            if pressedKeys[K_RIGHT]:
+            if pressedKeys[K_RIGHT] or pressedKeys[K_d]:
                 self.heroBall.moveLeftRight += 1
         elif event.type == self._GEN_BALL_EVENT:
             if len(self._toAddQueue) == 0:
@@ -371,7 +371,7 @@ class App:
             event = pygame.event.wait()
             if event.type in (MOUSEBUTTONDOWN, QUIT):
                 break
-            elif event.type == KEYDOWN and event.key not in (K_DOWN, K_UP, K_LEFT, K_RIGHT):
+            elif event.type == KEYDOWN and event.key not in (K_DOWN, K_UP, K_LEFT, K_RIGHT, K_w, K_s, K_a, K_d):
                 break
 
     def draw_ball(self, ball):
