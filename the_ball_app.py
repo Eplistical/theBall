@@ -124,7 +124,7 @@ class App:
                 self._initialHeroVelocity,
                 Charactor.HERO)
         self.otherBalls = set()
-        set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
+        set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))))
         self.score = 0.0
         # images
         self.imgs = {
@@ -165,7 +165,7 @@ class App:
                 self._toAddQueue = random.choices(list(self._genBallCharactorProb.keys()), weights=list(self._genBallCharactorProb.values()), k=self._toAddBatchSize)
             self.otherBalls.add(self.generate_ball(self._toAddQueue[-1]))
             self._toAddQueue.pop()
-            set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))), True)
+            set_timer(self._GEN_BALL_EVENT, int(self._genBallInterval * max(0.0, random.gauss(1.0, self._genBallStdDev))))
         elif event.type == self._SPECIAL_GODLIKE_EXPIRE:
             if self.heroBall.status == Charactor.SPECIAL_GODLIKE and (pygame.time.get_ticks() - self.heroBall.statusBeginTick) >= self._statusGodlikePeriod - 10:
                 self.heroBall.status = None
@@ -390,7 +390,6 @@ class App:
         self._genBallInterval *= self._levelUpGenBallIntervalRatio
         self._initialVelocityMagnitudeRange = tuple(x * self._levelUpVelocityRatio for x in self._initialVelocityMagnitudeRange)
         self._initialRadiusRange = tuple(x * self._levelUpRadiusRatio for x in self._initialRadiusRange)
-        #print(f'Level up! now genBallInterval = {self._genBallInterval}, init v mag range = {self._initialVelocityMagnitudeRange}, init radius range = {self._initialRadiusRange}')
     
     def collid_handler(self, ball):
         if ball.charactor == Charactor.ENEMY:
@@ -430,7 +429,6 @@ class App:
         else:
             for ball in balls:
                 self.score += basePoint * self._collideScoreCoef[ball.charactor]
-                #print(f'score up for {ball.charactor}! coef = {self._collideScoreCoef[ball.charactor]}')
     
 if __name__ == "__main__" :
     theApp = App()

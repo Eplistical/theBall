@@ -2,7 +2,7 @@
 
 A simple game based on pygame
 
-Requires pygame version >= 2.0.0dev6
+Requires pygame 
 
 To run with Python3
 ```

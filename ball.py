@@ -48,6 +48,3 @@ class Ball:
     
     def collide(self, other):
         return self.distance(other) < (self.radius + other.radius)
-    
-    def apply(self, other):
-        pass
